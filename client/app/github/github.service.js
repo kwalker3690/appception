@@ -45,7 +45,7 @@ angular.module('appceptionApp')
       })
     };
 
-    var createCommit = function(githubLogin, repoName, message) {
+    var createCommit = function(githubLogin, repoName, message, filesArray) {
       console.log('inside createCommit')
       return $http({
         method: 'GET',
@@ -53,7 +53,8 @@ angular.module('appceptionApp')
         params: {
           githubLogin: githubLogin,
           repoName: repoName,
-          message: message
+          message: message,
+          filesArray: filesArray
         }
       })
     }
@@ -91,10 +92,36 @@ angular.module('appceptionApp')
       });
     }
 
+    var getBranches = function(githubLogin, repoName) {
+      return $http({
+        method: 'GET',
+        url: '/api/projects/branches',
+        params: {
+          githubLogin: githubLogin,
+          repoName: repoName
+        }
+      })
+    };
+
+    var createBranch = function(githubLogin, repoName, baseBranchName, newBranchName) {
+      return $http({
+        method: 'GET',
+        url: '/api/projects/createbranch',
+        params: {
+          githubLogin: githubLogin,
+          repoName: repoName,
+          baseBranchName: baseBranchName,
+          newBranchName: newBranchName
+        }
+      })
+    }
+
     return {
       getRepos: getRepos,
       getRepoFiles: getRepoFiles,
       createRepo: createRepo,
-      createCommit: createCommit
+      createCommit: createCommit,
+      createBranch: createBranch,
+      getBranches: getBranches
     };
   });

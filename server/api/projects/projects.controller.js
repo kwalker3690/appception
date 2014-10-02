@@ -34,7 +34,8 @@ exports.index = function(req, response) {
 
   // get list of repos
   github.repos.getFromUser({
-    user: githubLogin
+    user: githubLogin,
+    per_page: 100
   }, function(err, data) {
     if (err) {
       console.log("ERROR: projects.controller.js: get all repos", err);
@@ -45,6 +46,7 @@ exports.index = function(req, response) {
     for (var key in data) {
       if (data[key].name === userPageName) { // user has User Page
         //console.log("\n\nFOUND USE PAGE: ", data[key].name, ", proceeding with Projects page load...");
+        console.log(data)
         return response.json(data);
       } // end if (user has user page)
     } // end for (key in data)
@@ -142,7 +144,7 @@ exports.files = function (req, res) {
 
 
 // Create a new repo
-exports.newRepo = function (req, res) {
+exports.newRepo = function (req, response) {
 
   console.log('inside server new repo')
   var githubLogin = req.query.githubLogin;
@@ -203,7 +205,9 @@ exports.newRepo = function (req, res) {
 
           })
         }).then(function () {
+          createBranchHelper(githubLogin, repoName, 'master', 'gh-pages')
           console.log('All done!')
+          return response.json('Complete')
         }); // end forEachAsync
       }); // end fs.readdir
     }
@@ -215,101 +219,18 @@ exports.commit = function (req, response) {
   var githubLogin = req.query.githubLogin;
   var repoName = req.query.repoName;
   var message = req.query.message;
+  var filesArray = req.query.filesArray;
+  console.log('filesArray before', filesArray)
 
-  // Get reference to head of branch
-  // NOTE: if we want to commit to a different branch we can change that in ref
-  // NOTE: to deploy project, we need to add a branch called 'gh-pages'
-  github.gitdata.getReference({
-    user: githubLogin,
-    repo: repoName,
-    ref: 'heads/master'
-  }, function (err, res) {
-    if (err) {
-      console.log('get latest commit sha error', err)
-    } else {
-      console.log('get latest commit sha success')
-      var latestCommitSha = res.object.sha;
+  for(var i = 0; i < filesArray.length; i++) {
+    filesArray[i] = JSON.parse(filesArray[i])
+  }
+  console.log('filesArray after', filesArray)
 
-      // Get last commit info
-      github.gitdata.getCommit({
-        user: githubLogin,
-        repo: repoName,
-        sha: latestCommitSha
-      }, function (err, res) {
-        if (err) {
-          console.log('get info for latest commit error', err)
-        } else {
-          console.log('get info for latest commit success')
+  createCommitHelper(githubLogin, repoName, 'heads/master', filesArray, message)
+  createCommitHelper(githubLogin, repoName, 'heads/gh-pages', filesArray, message)
 
-          var baseTreeSha = res.tree.sha
-
-          github.authenticate({
-            type: "oauth",
-            token: token.token
-          });
-
-          // Create a new tree with changed content, based on the last commit
-          github.gitdata.createTree({
-            user: githubLogin,
-            repo: repoName,
-            tree: [{
-              "path": "index.html",
-              "mode": "100644",
-              "type": "blob",
-              "content": "hello this is NOT dog"
-            }, {
-              "path": "main.css",
-              "mode": "100644",
-              "type": "blob",
-              "content": "who is it?"
-            }],
-            base_tree: baseTreeSha
-          }, function (err, res) {
-            if (err) {
-              console.log('create tree error', err)
-            } else {
-              console.log('create tree success')
-
-              var newTreeSha = res.sha
-
-              // Create actual commit info
-              github.gitdata.createCommit({
-                user: githubLogin,
-                repo: repoName,
-                message: message,
-                tree: newTreeSha,
-                parents: [latestCommitSha]
-              }, function (err, res) {
-                if (err) {
-                  console.log('create commit error', err)
-                } else {
-                  console.log('create commit success')
-                  var newCommitSha = res.sha
-
-                  // Update head of branch to be current commit
-                  github.gitdata.updateReference({
-                    user: githubLogin,
-                    repo: repoName,
-                    ref: 'heads/master',
-                    sha: newCommitSha,
-                    force: true
-                  }, function (err, res) {
-                    if (err) {
-                      console.log('create reference error', err)
-                    } else {
-                      console.log('create reference success')
-
-                      return response.json('success!')
-                    }
-                  })
-                }
-              })
-            }
-          })
-        }
-      })
-    }
-  })
+  return response.json('success!')
 }
 
 
@@ -364,5 +285,152 @@ exports.doesUserHaveUserPage = function (username) {
   }); // end github.repos.getFromUser
 }; // end doesUserHaveUserPage
 
+exports.getBranches = function(req, response) {
+  var githubLogin = req.query.githubLogin;
+  var repoName = req.query.repoName;
 
+  github.repos.getBranches({
+    user: githubLogin,
+    repo: repoName
+  }, function(err, res) {
+    if(err) {
+      console.log('get branches error:', err)
+    } else {
+      console.log('get branches success:', res)
+
+      return response.json(res)
+
+    }
+  })
+}
+
+exports.createBranch = function(req, res) {
+  var githubLogin = req.query.githubLogin;
+  var repoName = req.query.repoName;
+  var baseBranchName = req.query.baseBranchName;
+  var newBranchName = req.query.newBranchName;
+
+  return res.json(createBranchHelper(githubLogin, repoName, baseBranchName, newBranchName))
+}
+
+
+var createBranchHelper = function(username, repoName, baseBranchName, newBranchName) {
+  github.gitdata.getReference({
+    user: username,
+    repo: repoName,
+    ref: 'heads/' + baseBranchName
+  }, function(err, res) {
+    if(err) {
+      console.log('create branch get reference error:', err)
+    } else {
+      console.log('create branch get reference success:', res)
+      var referenceSha = res.object.sha
+
+      github.authenticate({
+        type: "oauth",
+        token: token.token
+      });
+
+      github.gitdata.createReference({
+        user: username,
+        repo: repoName,
+        ref: 'refs/heads/' + newBranchName,
+        sha: referenceSha
+      }, function(err, res) {
+        if(err) {
+          console.log('create branch create reference error:', err)
+        } else {
+          console.log('create branch create reference success:', res)
+          return res
+        }
+      })
+    }
+  })
+}
+
+var createCommitHelper = function(githubLogin, repoName, branchName, filesArray, message) {
+  // Get reference to head of branch
+  // NOTE: if we want to commit to a different branch we can change that in ref
+  // NOTE: to deploy project, we need to add a branch called 'gh-pages'
+  github.gitdata.getReference({
+    user: githubLogin,
+    repo: repoName,
+    ref: branchName
+  }, function (err, res) {
+    if (err) {
+      console.log('get latest commit sha error', err)
+    } else {
+      console.log('get latest commit sha success')
+      var latestCommitSha = res.object.sha;
+
+      // Get last commit info
+      github.gitdata.getCommit({
+        user: githubLogin,
+        repo: repoName,
+        sha: latestCommitSha
+      }, function (err, res) {
+        if (err) {
+          console.log('get info for latest commit error', err)
+        } else {
+          console.log('get info for latest commit success')
+
+          var baseTreeSha = res.tree.sha
+
+          github.authenticate({
+            type: "oauth",
+            token: token.token
+          });
+
+          // Create a new tree with changed content, based on the last commit
+          github.gitdata.createTree({
+            user: githubLogin,
+            repo: repoName,
+            tree: filesArray,
+            base_tree: baseTreeSha
+          }, function (err, res) {
+            if (err) {
+              console.log('create tree error', err)
+            } else {
+              console.log('create tree success')
+
+              var newTreeSha = res.sha
+
+              // Create actual commit info
+              github.gitdata.createCommit({
+                user: githubLogin,
+                repo: repoName,
+                message: message,
+                tree: newTreeSha,
+                parents: [latestCommitSha]
+              }, function (err, res) {
+                if (err) {
+                  console.log('create commit error', err)
+                } else {
+                  console.log('create commit success')
+                  var newCommitSha = res.sha
+
+                  // Update head of branch to be current commit
+                  github.gitdata.updateReference({
+                    user: githubLogin,
+                    repo: repoName,
+                    ref: branchName,
+                    sha: newCommitSha,
+                    force: true
+                  }, function (err, res) {
+                    if (err) {
+                      console.log('create reference error', err)
+                    } else {
+                      console.log('create reference success')
+                      return;
+                    }
+                  })
+                }
+              })
+            }
+          })
+        }
+      })
+    }
+  })
+}
 
