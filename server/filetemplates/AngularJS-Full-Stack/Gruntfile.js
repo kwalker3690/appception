@@ -1,4 +1,4 @@
-// Generated on 2014-10-07 using generator-angular-fullstack 2.0.12
+// Generated on 2014-10-11 using generator-angular-fullstack 2.0.13
 'use strict';
 
 module.exports = function (grunt) {
@@ -300,7 +300,7 @@ module.exports = function (grunt) {
     ngtemplates: {
       options: {
         // This should be the name of your apps angular module
-        module: 'angularJsfullStackApp',
+        module: 'herokuTest2App',
         htmlmin: {
           collapseBooleanAttributes: true,
           collapseWhitespace: true,
@@ -345,7 +345,7 @@ module.exports = function (grunt) {
             'bower_components/**/*',
             'assets/images/**/*',
             'assets/fonts/**/*',
-            'index.html'
+            'index.html',
           ]
         }, {
           expand: true,
@@ -357,7 +357,8 @@ module.exports = function (grunt) {
           dest: '<%= yeoman.dist %>',
           src: [
             'package.json',
-            'server/**/*'
+            'server/**/*',
+            'Procfile'
           ]
         }]
       },
@@ -379,7 +380,7 @@ module.exports = function (grunt) {
       },
       heroku: {
         options: {
-          remote: 'heroku',
+          remote: 'git@heroku.com:salty-reaches-6796.git',
           branch: 'master'
         }
       },

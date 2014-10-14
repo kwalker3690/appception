@@ -27,7 +27,18 @@ exports.create = function(req, res) {
                     "app": {"name": appName } };
 
   var callback = function(){
-    res.send('new app created')
+    console.log(arguments)
+    if(arguments['1']) {
+      var buildId = arguments['1']['id']
+      console.log(buildId)
+      res.send('new app created')
+      heroku.appSetups(buildId).info(function() {
+        console.log('creation info',arguments)
+      });
+      heroku.apps(appName).configVars().update({'NODE_ENV': 'production'}, function() {
+        console.log('config vars', arguments)
+      })
+    }
     return console.log('new app created'); // making this a return so the server can capture it and we can test it.
   }
 
@@ -46,16 +57,22 @@ exports.update = function(req, res) {
   var appName = githubLogin + '-' + githubRepo;
   var attributes = {"source_blob":{"url":"https://github.com/" + githubLogin + "/" + githubRepo + "/archive/heroku.tar.gz"},
                     "app": {"name": appName } };
- 
+
 
 
   var callback = function(){
     res.send('app updated');
+    console.log('update callback', arguments)
+    var buildId = arguments['1']['id']
+    heroku.apps(appName).builds(buildId).info(function() {
+      console.log('builds',arguments)
+    });
     return console.log('app updated'); // making this a return so the server can capture it and we can test it.
   };
    console.log('update app attributes', attributes);
 
   heroku.apps(appName).builds().create(attributes, callback);
+
 };
 
 

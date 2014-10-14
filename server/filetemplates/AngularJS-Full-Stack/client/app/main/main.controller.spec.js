@@ -3,8 +3,7 @@
 describe('Controller: MainCtrl', function () {
 
   // load the controller's module
-  beforeEach(module('angularJsfullStackApp'));
-  beforeEach(module('socketMock'));
+  beforeEach(module('herokuTest2App'));
 
   var MainCtrl,
       scope,

@@ -1,6 +1,6 @@
 'use strict';
 
-angular.module('angularJsfullStackApp')
+angular.module('herokuTest2App')
   .factory('Modal', function ($rootScope, $modal) {
     /**
      * Opens a modal

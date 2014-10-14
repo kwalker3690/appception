@@ -105,47 +105,53 @@ angular.module('appceptionApp')
             toCommit.push(value)
           }
         })
-        console.log(toCommit)
-        for(var i = toCommit.length-1; i >= 0; i--) {
-          if(!toCommit[i]["content"]){
-            toCommit.splice(i, 1);
+        console.log($scope.timeLoaded, toCommit)
+
+        if(toCommit.length) {
+          for(var i = toCommit.length-1; i >= 0; i--) {
+            if(!toCommit[i]["content"]){
+              toCommit.splice(i, 1);
+            }
           }
+
+          for(var i = 0; i < toCommit.length; i++) {
+            toCommit[i]["mode"] = '100644';
+            toCommit[i]["type"] = 'blob';
+            toCommit[i]["path"] = toCommit[i]["path"].replace('/' + $scope.repoName + '/', '')
+          }
+
+          Auth.isLoggedInAsync(function(boolean) {
+            if(boolean === true){
+              var user = Auth.getCurrentUser();
+              github.createCommit(user.github.login, $scope.repoName, branches, message, toCommit)
+                .then(function(res){
+                  console.log('commit done', res)
+                  $scope.committing = false;
+                  $scope.success = true;
+
+                  // if app is deployed on Heroku, build app
+                  if($scope.deployBranch ==='heroku' && !!$cookieStore.get('deployToken')) {
+                    console.log('update heroku app');
+                    $scope.updatingHerokuApp = true;
+                    heroku.updateApp($scope.username, $scope.repoName)
+                      .then( function(res){
+                        console.log('done updating', res)
+                        $scope.showLivePreview = true;
+                        $scope.updatingHerokuApp = false;
+                      });
+                  }
+
+                })
+            }else {
+              console.log('Sorry, an error has occurred while committing');
+              $scope.committing = false;
+              $scope.failure = true
+            }
+          });
+        } else {
+          console.log('nothing to commit')
         }
 
-        for(var i = 0; i < toCommit.length; i++) {
-          toCommit[i]["mode"] = '100644';
-          toCommit[i]["type"] = 'blob';
-          toCommit[i]["path"] = toCommit[i]["path"].replace('/' + $scope.repoName + '/', '')
-        }
-
-        Auth.isLoggedInAsync(function(boolean) {
-          if(boolean === true){
-            var user = Auth.getCurrentUser();
-            github.createCommit(user.github.login, $scope.repoName, branches, message, toCommit)
-              .then(function(res){
-                console.log('commit done', res)
-                $scope.committing = false;
-                $scope.success = true;
-
-                // if app is deployed on Heroku, build app
-                if($scope.deployBranch ==='heroku' && !!$cookieStore.get('deployToken')) {
-                  console.log('update heroku app');
-                  $scope.updatingHerokuApp = true;
-                  heroku.updateApp($scope.username, $scope.repoName)
-                    .then( function(res){
-                      console.log('done updating', res)
-                      $scope.showLivePreview = true;
-                      $scope.updatingHerokuApp = false;
-                    });
-                }
-
-              })
-          }else {
-            console.log('Sorry, an error has occurred while committing');
-            $scope.committing = false;
-            $scope.failure = true
-          }
-        });
       })
     };
 

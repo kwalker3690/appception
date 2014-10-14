@@ -5,7 +5,7 @@
 module.exports = {
   // MongoDB connection options
   mongo: {
-    uri: 'mongodb://localhost/angularjsfullstack-dev'
+    uri: 'mongodb://localhost/herokutest2-dev'
   },
 
   seedDB: true

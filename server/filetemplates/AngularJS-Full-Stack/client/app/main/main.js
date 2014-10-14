@@ -1,6 +1,6 @@
 'use strict';
 
-angular.module('angularJsfullStackApp')
+angular.module('herokuTest2App')
   .config(function ($stateProvider) {
     $stateProvider
       .state('main', {

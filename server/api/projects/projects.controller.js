@@ -214,7 +214,7 @@ exports.newRepo = function (req, response) {
                   next()
                 }
               })
-            }, 600)
+            }, 1000)
           })
         } else {
           // If path is a directory, add the folder name to the results array
@@ -222,7 +222,7 @@ exports.newRepo = function (req, response) {
           next();
         }
       }).then(function(){
-        // Create a deploy branch for github pages/deployment
+        // Create a deploy branch for github pages/heroku deployment
         createBranchHelper(githubLogin, repoName, 'master', deployment)
         console.log('all done!')
         return response.json(results)

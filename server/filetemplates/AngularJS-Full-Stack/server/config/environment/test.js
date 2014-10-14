@@ -5,6 +5,6 @@
 module.exports = {
   // MongoDB connection options
   mongo: {
-    uri: 'mongodb://localhost/angularjsfullstack-test'
+    uri: 'mongodb://localhost/herokutest2-test'
   }
 };
